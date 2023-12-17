@@ -1,5 +1,5 @@
 // src/components/MainPage.js
-import { Editor, Tldraw, uniqueId } from '@tldraw/tldraw';
+import { Tldraw, uniqueId } from '@tldraw/tldraw';
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -28,27 +28,27 @@ const MainPage = () => {
 
   return (
     <>
-    <div style={{
-      textAlign: "center",
-      marginTop: "30px",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: "10px"
+      <div style={{
+        textAlign: "center",
+        marginTop: "30px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: "10px"
       }}>
-    <h1>Choose whiteboard or</h1>
-      <Link
-        className='btn btn-success btn-md fs-5'
-        to={{
-          pathname: '/board',
-          search: `?boardId=${uniqueId()}`,
-        }}
-      >
-        Open new board
-      </Link>
-    </div>
-      
-      <div style={{display: "flex", gap: "10px", marginTop: "20px"}}>
+        <h1>Choose whiteboard or</h1>
+        <Link
+          className='btn btn-success btn-md fs-5'
+          to={{
+            pathname: '/board',
+            search: `?boardId=${uniqueId()}`,
+          }}
+        >
+          Open new board
+        </Link>
+      </div>
+
+      <div style={{ display: "flex", gap: "10px", marginTop: "20px" }}>
         {Object.entries(data).map(([boardId, snapshot]) => (
 
           <div key={boardId} style={{ width: "300px", height: "300px" }}>
@@ -58,16 +58,18 @@ const MainPage = () => {
                 search: `?boardId=${boardId}`,
               }}
             >
-              <Tldraw
-                snapshot={snapshot}
-                hideUi
-                forceMobile
-                onMount={(editor) => {
-                  editor.updateInstanceState({ isReadonly: true })
-                  editor.zoomToContent()
-                  editor.removeAllListeners('change')
-                }}
-              />
+              <div style={{pointerEvents: "none"}}>
+                <Tldraw
+                  snapshot={snapshot}
+                  hideUi
+                  forceMobile
+                  onMount={(editor) => {
+                    editor.updateInstanceState({ isReadonly: true })
+                    editor.zoomToContent()
+                    editor.removeAllListeners('change')
+                  }}
+                />
+              </div>
             </Link>
           </div>
         ))}
