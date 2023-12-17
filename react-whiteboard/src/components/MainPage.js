@@ -58,18 +58,17 @@ const MainPage = () => {
                 search: `?boardId=${boardId}`,
               }}
             >
-              <div style={{pointerEvents: "none"}}>
-                <Tldraw
-                  snapshot={snapshot}
-                  hideUi
-                  forceMobile
-                  onMount={(editor) => {
-                    editor.updateInstanceState({ isReadonly: true })
-                    editor.zoomToContent()
-                    editor.removeAllListeners('change')
-                  }}
-                />
-              </div>
+              <Tldraw
+                className='unclickable'
+                snapshot={snapshot}
+                hideUi
+                forceMobile
+                onMount={(editor) => {
+                  editor.updateInstanceState({ isReadonly: true })
+                  editor.zoomToContent()
+                  editor.removeAllListeners('change')
+                }}
+              />
             </Link>
           </div>
         ))}
