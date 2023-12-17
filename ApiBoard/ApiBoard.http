@@ -1,0 +1,6 @@
+@ApiBoard_HostAddress = http://localhost:5286
+
+GET {{ApiBoard_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
