@@ -114,11 +114,11 @@ namespace ApiBoard.Hubs
             }
         }
 
-        private static void UpdateDeletes(Snapshot board, Changes changes)
+        private static void UpdateAdds(Snapshot board, Changes changes)
         {
-            foreach (var removed in changes.added)
+            foreach (var added in changes.added)
             {
-                board.Store.Remove(removed.Key);
+                board.Store.AddOrUpdate(added.Key, (_) => added.Value, (_, _) => added.Value);
             }
         }
 
@@ -130,11 +130,11 @@ namespace ApiBoard.Hubs
             }
         }
 
-        private static void UpdateAdds(Snapshot board, Changes changes)
+        private static void UpdateDeletes(Snapshot board, Changes changes)
         {
-            foreach (var added in changes.added)
+            foreach (var removed in changes.removed)
             {
-                board.Store.Add(added.Key, added.Value);
+                board.Store.Remove(removed.Key, out var _);
             }
         }
     }
