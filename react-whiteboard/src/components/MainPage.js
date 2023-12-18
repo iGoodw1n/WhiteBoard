@@ -1,10 +1,15 @@
 // src/components/MainPage.js
-import { Tldraw, uniqueId } from '@tldraw/tldraw';
+import { Tldraw } from '@tldraw/tldraw';
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 const MainPage = () => {
   const [data, setData] = useState([]);
+  const [inputValue, setInputValue] = useState('');
+
+  const handleInputChange = (event) => {
+    setInputValue(event.target.value);
+  };
 
   useEffect(() => {
     // Function to fetch data from the server
@@ -37,27 +42,33 @@ const MainPage = () => {
         gap: "10px"
       }}>
         <h1>Choose whiteboard or</h1>
+        <input
+        type="text"
+        value={inputValue}
+        onChange={handleInputChange}
+      />
         <Link
           className='btn btn-success btn-md fs-5'
           to={{
             pathname: '/board',
-            search: `?boardId=${uniqueId()}`,
+            search: `?boardId=${inputValue}`,
           }}
         >
-          Open new board
+          Create board
         </Link>
       </div>
 
       <div style={{
         display: "flex",
         gap: "10px",
+        rowGap: "40px",
         marginTop: "20px",
         flexWrap: "wrap",
         justifyContent: "center"
         }}>
         {Object.entries(data).map(([boardId, snapshot]) => (
 
-          <div key={boardId} style={{ width: "300px", height: "300px" }}>
+          <div key={boardId} style={{ width: "300px", height: "300px", textAlign: "center" }}>
             <Link
               to={{
                 pathname: '/board',
@@ -76,6 +87,7 @@ const MainPage = () => {
                 }}
               />
             </Link>
+            <text className='fs-5'>{boardId}</text>
           </div>
         ))}
       </div>

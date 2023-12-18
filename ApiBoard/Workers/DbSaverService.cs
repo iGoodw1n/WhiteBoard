@@ -2,41 +2,13 @@
 
 namespace ApiBoard.Workers;
 
-public class TimedHostedService : BackgroundService, IDisposable
+public class DbSaverService : BackgroundService
 {
     readonly Action _saveChanges;
-    readonly Action _cleanCache;
-    private Timer? _timerForSaving = null;
-    private Timer? _timerForCleaning = null;
 
-    public TimedHostedService(BoardCloudStorageService storageService)
+    public DbSaverService(BoardCloudStorageService storageService)
     {
-        (_saveChanges, _cleanCache) = storageService.GetHandlers();
-    }
-
-    public Task StartAsync(CancellationToken stoppingToken)
-    {
-
-        _timerForSaving = new Timer((_) => _saveChanges(), null, TimeSpan.FromSeconds(1),
-            Timeout.InfiniteTimeSpan);
-        _timerForCleaning = new Timer((_) => _cleanCache(), null, TimeSpan.FromMinutes(10),
-            Timeout.InfiniteTimeSpan);
-
-        return Task.CompletedTask;
-    }
-
-    public Task StopAsync(CancellationToken stoppingToken)
-    {
-        _timerForSaving?.Change(Timeout.Infinite, 0);
-        _timerForCleaning?.Change(Timeout.Infinite, 0);
-
-        return Task.CompletedTask;
-    }
-
-    public void Dispose()
-    {
-        _timerForSaving?.Dispose();
-        _timerForCleaning?.Dispose();
+        (_saveChanges, _) = storageService.GetHandlers();
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -50,3 +22,5 @@ public class TimedHostedService : BackgroundService, IDisposable
         }
     }
 }
+
+    

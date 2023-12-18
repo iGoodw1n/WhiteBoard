@@ -106,7 +106,7 @@ public class BoardCloudStorageService : IDisposable
         var lastUpdatedBoards = _boardLastSaveToDb.ToFrozenDictionary();
         foreach (var kvp in lastUpdatedBoards)
         {
-            if (DateTime.UtcNow.Subtract(kvp.Value) < TimeSpan.FromMinutes(60))
+            if (DateTime.UtcNow.Subtract(kvp.Value) < TimeSpan.FromMinutes(30))
             {
                 continue;
             }
