@@ -1,6 +1,6 @@
+using ApiBoard.Extensions;
 using ApiBoard.Hubs;
 using ApiBoard.Services;
-using Microsoft.Extensions.FileProviders;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,9 +8,21 @@ var builder = WebApplication.CreateBuilder(args);
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddSignalR();
+builder.Services.AddSignalR()
+    .AddNewtonsoftJsonProtocol(options =>
+    {
+        options.PayloadSerializerSettings = new Newtonsoft.Json.JsonSerializerSettings
+        {
+            ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore
+        };
+    });
+builder.Services.AddControllers()
+    .AddNewtonsoftJson(options =>
+    {
+        options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Serialize;
+    });
 builder.Services.AddSingleton<BoardStorageService>();
-
+await builder.Services.AddStorageCosmos();
 
 var app = builder.Build();
 
@@ -22,18 +34,18 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseRouting();
 
 app.UseDefaultFiles();
 app.UseStaticFiles();
-app.MapFallbackToFile("index.html");
 
-app.MapHub<BoardHub>("board");
-
-app.MapGet("/boards", (BoardStorageService service) =>
+app.UseEndpoints(endpoints =>
 {
-    return service.GetAllBoards();
-})
-.WithName("GetBoards")
-.WithOpenApi();
+    endpoints.MapControllers();
+    endpoints.MapHub<BoardHub>("board");
+    endpoints.MapFallbackToFile("index.html");
+
+});
+
 
 app.Run();

@@ -10,9 +10,9 @@ namespace ApiBoard.Hubs
 {
     public class BoardHub : Hub
     {
-        private BoardStorageService _storageService;
+        private BoardCloudStorageService _storageService;
 
-        public BoardHub(BoardStorageService boardStorageService)
+        public BoardHub(BoardCloudStorageService boardStorageService)
         {
             _storageService = boardStorageService;
         }
@@ -39,8 +39,9 @@ namespace ApiBoard.Hubs
                 return;
             }
 
-            var board = _storageService.GetBoardById(groupName);
-            await UpdateData(message, groupName, board);
+            var board = await _storageService.GetBoardById(groupName);
+            await UpdateData(message, groupName, board.Snapshot);
+            await _storageService.SaveUpdates(board);
         }
 
         public async Task Recovery()
@@ -63,8 +64,8 @@ namespace ApiBoard.Hubs
 
         private async Task HandleUserConnection(StringValues group)
         {
-            await AddToGroup(group);
             await InitClient(group);
+            await AddToGroup(group);
         }
         private async Task AddToGroup(StringValues group)
         {
@@ -74,12 +75,13 @@ namespace ApiBoard.Hubs
 
         private async Task InitClient(StringValues group)
         {
+            var board = await _storageService.GetBoardById(group.ToString());
             await Clients.Caller
                 .SendAsync(
                 "init",
                 new
                 {
-                    _storageService.GetBoardById(group.ToString()).Store,
+                    store = board.Snapshot.Store,
                     schema = JsonSerializer.Deserialize<JsonObject>(StringStorage.Schema)
                 });
         }
@@ -89,15 +91,15 @@ namespace ApiBoard.Hubs
             return _storageService.GetGroupName(Context.ConnectionId);
         }
 
-        private async Task UpdateData(UpdateMessage message, string groupName, Snapshot board)
+        private async Task UpdateData(UpdateMessage message, string groupName, Snapshot snapshot)
         {
             try
             {
-                HandleUpdates(message, board);
+                HandleUpdates(message, snapshot);
             }
             catch
             {
-                await Clients.Caller.SendAsync("recovery", board);
+                await Clients.Caller.SendAsync("recovery", snapshot);
             }
 
             await Clients.OthersInGroup(groupName).SendAsync("update", message);

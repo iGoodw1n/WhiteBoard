@@ -48,7 +48,13 @@ const MainPage = () => {
         </Link>
       </div>
 
-      <div style={{ display: "flex", gap: "10px", marginTop: "20px" }}>
+      <div style={{
+        display: "flex",
+        gap: "10px",
+        marginTop: "20px",
+        flexWrap: "wrap",
+        justifyContent: "center"
+        }}>
         {Object.entries(data).map(([boardId, snapshot]) => (
 
           <div key={boardId} style={{ width: "300px", height: "300px" }}>

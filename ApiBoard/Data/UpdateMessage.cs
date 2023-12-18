@@ -1,5 +1,4 @@
-﻿using System.Text.Json;
-using System.Text.Json.Serialization;
+﻿using Newtonsoft.Json.Linq;
 
 namespace ApiBoard.Data
 {
@@ -10,9 +9,9 @@ namespace ApiBoard.Data
 
     public class Changes
     {
-        public Dictionary<string, JsonElement> added { get; set; }
-        public Dictionary<string, JsonElement[]> updated { get; set; }
-        public Dictionary<string, JsonElement> removed { get; set; }
+        public Dictionary<string, JObject> added { get; set; }
+        public Dictionary<string, JObject[]> updated { get; set; }
+        public Dictionary<string, JObject> removed { get; set; }
     }
 
     public class Update
