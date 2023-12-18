@@ -37,6 +37,7 @@ const MainPage = () => {
         textAlign: "center",
         marginTop: "30px",
         display: "flex",
+        flexWrap: "wrap",
         alignItems: "center",
         justifyContent: "center",
         gap: "10px"
