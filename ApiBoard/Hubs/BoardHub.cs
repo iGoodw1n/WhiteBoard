@@ -11,10 +11,12 @@ namespace ApiBoard.Hubs
     public class BoardHub : Hub
     {
         private BoardCloudStorageService _storageService;
+        private GroupService _groupService;
 
-        public BoardHub(BoardCloudStorageService boardStorageService)
+        public BoardHub(BoardCloudStorageService boardStorageService, GroupService groupService)
         {
             _storageService = boardStorageService;
+            _groupService = groupService;
         }
         public async override Task OnConnectedAsync()
         {
@@ -41,7 +43,7 @@ namespace ApiBoard.Hubs
 
             var board = await _storageService.GetBoardById(groupName);
             await UpdateData(message, groupName, board.Snapshot);
-            await _storageService.SaveUpdates(board);
+            _storageService.SaveUpdates(board);
         }
 
         public async Task Recovery()
@@ -58,7 +60,7 @@ namespace ApiBoard.Hubs
 
         public override Task OnDisconnectedAsync(Exception? exception)
         {
-            _storageService.RemoveFromGroup(Context.ConnectionId);
+            _groupService.RemoveFromGroup(Context.ConnectionId);
             return base.OnDisconnectedAsync(exception);
         }
 
@@ -70,7 +72,7 @@ namespace ApiBoard.Hubs
         private async Task AddToGroup(StringValues group)
         {
             await Groups.AddToGroupAsync(Context.ConnectionId, group.ToString());
-            _storageService.AddToGroup(Context.ConnectionId, group.ToString());
+            _groupService.AddToGroup(Context.ConnectionId, group.ToString());
         }
 
         private async Task InitClient(StringValues group)
@@ -88,7 +90,7 @@ namespace ApiBoard.Hubs
 
         private string? GetGroupName()
         {
-            return _storageService.GetGroupName(Context.ConnectionId);
+            return _groupService.GetGroupName(Context.ConnectionId);
         }
 
         private async Task UpdateData(UpdateMessage message, string groupName, Snapshot snapshot)

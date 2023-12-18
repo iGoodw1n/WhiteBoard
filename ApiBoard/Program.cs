@@ -1,6 +1,7 @@
 using ApiBoard.Extensions;
 using ApiBoard.Hubs;
 using ApiBoard.Services;
+using ApiBoard.Workers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,6 +9,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddHostedService<TimedHostedService>();
 builder.Services.AddSignalR()
     .AddNewtonsoftJsonProtocol(options =>
     {
@@ -22,6 +24,7 @@ builder.Services.AddControllers()
         options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Serialize;
     });
 builder.Services.AddSingleton<BoardStorageService>();
+builder.Services.AddSingleton<GroupService>();
 await builder.Services.AddStorageCosmos();
 
 var app = builder.Build();

@@ -1,39 +1,39 @@
 ﻿using ApiBoard.Data;
 using ApiBoard.Helpers;
-using System.Collections.Concurrent;
-using System.Text.Json.Nodes;
-using System.Text.Json;
 using Microsoft.Azure.Cosmos;
 using System.Net;
 using Newtonsoft.Json.Linq;
+using System.Collections.Concurrent;
+using System.Collections.Frozen;
 
 namespace ApiBoard.Services;
 
-public class BoardCloudStorageService
+public class BoardCloudStorageService : IDisposable
 {
-    private readonly ConcurrentDictionary<string, string> UsersByGroups = [];
-
     private readonly CosmosClient _cosmosClient;
     private readonly Database _database;
     private readonly Container _container;
+    private readonly ConcurrentDictionary<string, Board> _boards = new();
+    private readonly ConcurrentBag<string> _updatedBoards = new();
+    private readonly ConcurrentDictionary<string, DateTime> _boardLastSaveToDb = new();
 
     public BoardCloudStorageService(CosmosDbConnection cosmosDbConnection) => 
         (_cosmosClient, _database, _container) = cosmosDbConnection;
 
     public async Task<Board> GetBoardById(string id)
     {
-        ItemResponse<Board> boardResponse;
-        try
+        if (_boards.TryGetValue(id, out var board))
         {
-            boardResponse = await _container.ReadItemAsync<Board>(id, new PartitionKey(StringStorage.PartitionKey));
-            
-        }
-        catch(CosmosException ex) when(ex.StatusCode == HttpStatusCode.NotFound)
-        {
-            boardResponse = await _container.CreateItemAsync<Board>(new Board { Id = id }, new PartitionKey(StringStorage.PartitionKey));
+            return board;
         }
 
-        var board = boardResponse.Resource;
+        board = await GetFromDb(id);
+        _boards.AddOrUpdate(
+            id,
+            _ => board,
+            (_,currentBoard) =>
+                board.Snapshot.Store.Count > currentBoard.Snapshot.Store.Count ? board : currentBoard
+        );
         return board;
     }
 
@@ -60,28 +60,59 @@ public class BoardCloudStorageService
         return boards;
     }
 
-    public async Task SaveUpdates(Board board)
+    public void SaveUpdates(Board board)
     {
-        await _container.ReplaceItemAsync<Board>(board, board.Id, new PartitionKey(board.PartitionKey));
+        _updatedBoards.Add(board.Id);
     }
 
-    public string? GetGroupName(string connectionId)
+    public void Dispose()
     {
-        if (UsersByGroups.TryGetValue(connectionId, out var group))
+        _cosmosClient.Dispose();
+    }
+
+    public (Action SaveChanges, Action CleanCache) GetHandlers()
+    {
+        return (SaveUpdatesToDbAsync, CleanLocalCache);
+    }
+
+    private async Task<Board> GetFromDb(string id)
+    {
+        ItemResponse<Board> boardResponse;
+        try
         {
-            return group;
+            boardResponse = await _container.ReadItemAsync<Board>(id, new PartitionKey(StringStorage.PartitionKey));
+        }
+        catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            boardResponse = await _container.CreateItemAsync<Board>(new Board { Id = id }, new PartitionKey(StringStorage.PartitionKey));
         }
 
-        return null;
+        return boardResponse.Resource;
     }
 
-    public void AddToGroup(string connectionId, string groupName)
+    private void SaveUpdatesToDbAsync()
     {
-        UsersByGroups[connectionId] = groupName;
+        var updatedBoards = _updatedBoards.ToFrozenSet();
+        _updatedBoards.Clear();
+        foreach (var board in updatedBoards)
+        {
+            _container.ReplaceItemAsync(_boards[board], board, new PartitionKey(StringStorage.PartitionKey));
+            _boardLastSaveToDb.AddOrUpdate(board, _ => DateTime.Now, (_,_) => DateTime.Now);
+        }
     }
 
-    public void RemoveFromGroup(string connectionId)
+    private void CleanLocalCache()
     {
-        UsersByGroups.TryRemove(connectionId, out var group);
+        var lastUpdatedBoards = _boardLastSaveToDb.ToFrozenDictionary();
+        foreach (var kvp in lastUpdatedBoards)
+        {
+            if (DateTime.UtcNow.Subtract(kvp.Value) < TimeSpan.FromMinutes(60))
+            {
+                continue;
+            }
+
+            _boards.Remove(kvp.Key, out var _);
+            _boardLastSaveToDb.Remove(kvp.Key, out _);
+        }
     }
 }
